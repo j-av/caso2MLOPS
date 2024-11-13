@@ -1,0 +1,33 @@
+name: Ejecutar Cálculos de Maratón
+
+on:
+  push:
+    branches:
+      - main  # Ejecuta la acción cuando se hace un push a la rama principal
+  schedule:
+    - cron: '0 12 * * *'  # Ejecución diaria a las 12 PM (en UTC)
+
+jobs:
+  run-marathon-scripts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar el repositorio
+        uses: actions/checkout@v2
+
+      - name: Configurar Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Instalar dependencias
+        run: |
+          pip install -r requirements.txt
+
+      - name: Ejecutar script de carga de entreno
+        run: |
+          python carga_entreno.py
+
+      - name: Ejecutar script de predicción de maratón
+        run: |
+          python prediccion_maraton.py
