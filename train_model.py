@@ -55,7 +55,7 @@ marathon_data['TIME'] = marathon_data['TIME'].apply(convertir_tiempo_minutos)
 combined_data = pd.merge(marathon_data, weather_data, on='YEAR', how='inner')
 
 # Añadir el Effort Score al dataset combinado usando el ID del atleta para la combinación
-combined_data = pd.merge(combined_data, marathon_data_extra[['id', 'effort_score']], on='id', how='inner')
+combined_data = combined_data.merge(marathon_data_extra[['id', 'effort_score']], left_on='id', right_on='id', how='inner')
 
 # Seleccionar características y el objetivo
 features = ['effort_score', 'AVG_TEMP_C', 'PRECIP_mm', 'ATMOS_PRESS_mbar']
