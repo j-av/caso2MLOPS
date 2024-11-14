@@ -31,7 +31,7 @@ jobs:
           python train_model_2.py
 
       - name: Upload Trained Models
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3  # Cambiar a la versión v3
         with:
           name: trained-models
           path: |
