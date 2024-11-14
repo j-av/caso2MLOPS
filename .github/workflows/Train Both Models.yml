@@ -1,0 +1,39 @@
+name: Train Both Models
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Ejecutar cada lunes a medianoche
+  workflow_dispatch:      # Permite ejecución manual
+
+jobs:
+  train_models:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Train Model 1
+        run: |
+          python train_model_1.py
+
+      - name: Train Model 2
+        run: |
+          python train_model_2.py
+
+      - name: Upload Trained Models
+        uses: actions/upload-artifact@v2
+        with:
+          name: trained-models
+          path: |
+            trained_model_1.pkl
+            trained_model_2.pkl
