@@ -58,7 +58,7 @@ combined_data = pd.merge(marathon_data, weather_data, on='YEAR', how='inner')
 # Aquí se podría hacer una operación más detallada para asignar effort_score a cada carrera si hay un vínculo claro.
 
 # Seleccionar características y el objetivo (sin presión atmosférica ni horas de sol)
-features = ['AVG_TEMP_C', 'PRECIP_mm']  # Elimina o agrega effort_score si es necesario
+features = ['AVG_TEMP_C', 'PRECIP_mm', 'ATMOS_PRESS_mbar']  # Elimina o agrega effort_score si es necesario
 target = 'TIME'
 
 # Eliminar filas con valores nulos en las características seleccionadas
