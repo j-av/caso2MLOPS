@@ -1,4 +1,4 @@
-name: Ejecutar Cálculos de Maratón
+name: Entrenar y Guardar Modelo de Maratón
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
     - cron: '0 12 * * *'  # Ejecución diaria a las 12 PM (en UTC)
 
 jobs:
-  run-marathon-scripts:
+  train-and-save-model:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,10 +24,13 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Ejecutar script de carga de entreno
+      - name: Entrenar el modelo
         run: |
-          python carga_entreno.py
+          python train_model.py
 
-      - name: Ejecutar script de predicción de maratón
-        run: |
-          python prediccion_maraton.py
+      - name: Guardar el modelo entrenado
+        uses: actions/upload-artifact@v2
+        with:
+          name: marathon_prediction_model
+          path: marathon_prediction_model.pkl  # Guardar el archivo del modelo entrenado como un artefacto
+
