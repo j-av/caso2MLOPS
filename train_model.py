@@ -1,53 +1,66 @@
-import joblib
 import pandas as pd
-from fastapi import FastAPI
-from pydantic import BaseModel
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+import joblib
+import math
 
-# Cargar el modelo entrenado
-model = joblib.load("marathon_prediction_model.pkl")
+# Cargar los datos de maratón y clima
+marathon_data = pd.read_csv('Berlin_Marathon_data_1974_2019.csv', low_memory=False)
+weather_data = pd.read_csv('Berlin_Marathon_weather_data_since_1974.csv', low_memory=False)
 
-# Inicializar FastAPI
-app = FastAPI()
+# Convertir la columna 'YEAR' a formato de fecha para unir los datos
+marathon_data['YEAR'] = pd.to_datetime(marathon_data['YEAR'], format='%Y')
+weather_data['YEAR'] = pd.to_datetime(weather_data['YEAR'], format='%Y')
 
-# Definir el esquema de entrada
-class PredictionRequest(BaseModel):
-    km4week: float
-    sp4week: float
-    category: str
-    cross_training: int
-    wall21: float
-    avg_temp: float
-    precip_mm: float
+# Convertir la columna 'TIME' de formato HH:MM:SS a minutos
+def convertir_tiempo_minutos(tiempo):
+    try:
+        h, m, s = map(int, tiempo.split(':'))
+        return h * 60 + m + s / 60
+    except ValueError:
+        return np.nan
 
-# Asignar factores de categoría
-category_factors = {
-    'MAM': 1.0,
-    'WAM': 1.1,
-    'M40': 1.05
-}
+marathon_data['TIME'] = marathon_data['TIME'].apply(convertir_tiempo_minutos)
 
-cross_training_factor = 0.05
+# Unir los datos de maratón y clima por año
+combined_data = pd.merge(marathon_data, weather_data, on='YEAR', how='inner')
 
-# Función para calcular el Effort Score
-def calcular_score_entreno(km4week, sp4week, category, wall21, cross_training):
-    category_factor = category_factors.get(category, 1.0)
-    wall_penalization = wall21 / 10 if wall21 else 0
-    effort_score = (km4week * sp4week) * category_factor * (1 + cross_training_factor * cross_training) * (1 - wall_penalization)
-    return effort_score
+# Conectar a la base de datos para obtener el score de esfuerzo de cada atleta
+import sqlite3
+conn = sqlite3.connect('entrenos.db')
+query = 'SELECT atleta_id, effort_score FROM entrenos'
+effort_data = pd.read_sql(query, conn)
+conn.close()
 
-# Ruta de predicción
-@app.post("/predict")
-def predict(request: PredictionRequest):
-    # Calcular el Effort Score
-    effort_score = calcular_score_entreno(request.km4week, request.sp4week, request.category, request.wall21, request.cross_training)
+# Añadir el effort_score al dataset combinado
+combined_data['effort_score'] = effort_data['effort_score']
 
-    # Crear el DataFrame de entrada
-    input_data = pd.DataFrame({
-        'effort_score': [effort_score],
-        'AVG_TEMP_C': [request.avg_temp],
-        'PRECIP_mm': [request.precip_mm]
-    })
+# Seleccionar características y el objetivo (sin presión atmosférica ni horas de sol)
+features = ['effort_score', 'AVG_TEMP_C', 'PRECIP_mm']
+target = 'TIME'
 
-    # Realizar la predicción
-    prediction = model.predict(input_data)[0]
-    return {"predicted_time_minutes": prediction}
+# Eliminar filas con valores nulos en las características seleccionadas
+combined_data = combined_data.dropna(subset=features + [target])
+
+# Dividir los datos en X (características) y y (objetivo)
+X = combined_data[features]
+y = combined_data[target]
+
+# Dividir en conjunto de entrenamiento y prueba
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Entrenar un modelo de regresión para predecir el tiempo de maratón
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Calcular el error cuadrático medio (Root Mean Squared Error)
+y_pred = model.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+rmse = math.sqrt(mse)
+print(f"Root Mean Squared Error del modelo: {rmse:.2f} minutos")
+
+# Guardar el modelo entrenado
+joblib.dump(model, 'marathon_prediction_model.pkl')
+print("Modelo entrenado y guardado en 'marathon_prediction_model.pkl'")
