@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Clonar el repositorio
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Configurar Python
         uses: actions/setup-python@v2
@@ -29,7 +29,7 @@ jobs:
           python train_model.py
 
       - name: Guardar el modelo entrenado
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: marathon_prediction_model
           path: marathon_prediction_model.pkl  # Guardar el archivo del modelo entrenado como un artefacto
