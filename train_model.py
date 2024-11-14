@@ -1,12 +1,51 @@
 import pandas as pd
 import numpy as np
+import sqlite3
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 import joblib
 import math
 
-# Cargar los datos de maratón y clima
+# Paso 1: Conectar o crear la base de datos SQLite y crear la tabla `entrenos` si no existe
+conn = sqlite3.connect('entrenos.db')
+cursor = conn.cursor()
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS entrenos (
+    atleta_id INTEGER PRIMARY KEY,
+    effort_score REAL
+)
+''')
+conn.commit()
+
+# Paso 2: Cargar el CSV que contiene los datos necesarios para calcular el Effort Score
+marathon_data_extra = pd.read_csv('MarathonData.csv')
+
+# Factores para calcular el Effort Score
+category_factors = {
+    'MAM': 1.0,    # Male Athletes under 40
+    'WAM': 1.1,    # Women under 40
+    'M40': 1.05    # Male Athletes between 40 and 45 years
+}
+cross_training_factor = 0.05
+
+# Función para calcular el Effort Score
+def calcular_score_entreno(row):
+    category_factor = category_factors.get(row['Category'], 1.0)  # 1.0 por defecto
+    wall_penalization = row['Wall21'] / 10 if row['Wall21'] else 0
+    effort_score = (row['km4week'] * row['sp4week']) * category_factor * (1 + cross_training_factor * row['CrossTraining']) * (1 - wall_penalization)
+    return effort_score
+
+# Paso 3: Calcular el Effort Score y guardarlo en la base de datos
+for _, row in marathon_data_extra.iterrows():
+    effort_score = calcular_score_entreno(row)
+    cursor.execute('''
+    INSERT OR REPLACE INTO entrenos (atleta_id, effort_score) VALUES (?, ?)
+    ''', (row['id'], effort_score))
+
+conn.commit()
+
+# Paso 4: Cargar los datos de maratón y clima
 marathon_data = pd.read_csv('Berlin_Marathon_data_1974_2019.csv', low_memory=False)
 weather_data = pd.read_csv('Berlin_Marathon_weather_data_since_1974.csv', low_memory=False)
 
@@ -27,15 +66,12 @@ marathon_data['TIME'] = marathon_data['TIME'].apply(convertir_tiempo_minutos)
 # Unir los datos de maratón y clima por año
 combined_data = pd.merge(marathon_data, weather_data, on='YEAR', how='inner')
 
-# Conectar a la base de datos para obtener el score de esfuerzo de cada atleta
-import sqlite3
-conn = sqlite3.connect('entrenos.db')
-query = 'SELECT atleta_id, effort_score FROM entrenos'
-effort_data = pd.read_sql(query, conn)
+# Paso 5: Cargar el Effort Score desde la base de datos y añadirlo al dataset combinado
+effort_data = pd.read_sql('SELECT * FROM entrenos', conn)
 conn.close()
 
-# Añadir el effort_score al dataset combinado
-combined_data['effort_score'] = effort_data['effort_score']
+# Añadir el Effort Score al dataset combinado
+combined_data = combined_data.merge(effort_data, left_on='atleta_id', right_on='atleta_id', how='inner')
 
 # Seleccionar características y el objetivo (sin presión atmosférica ni horas de sol)
 features = ['effort_score', 'AVG_TEMP_C', 'PRECIP_mm']
