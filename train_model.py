@@ -21,6 +21,12 @@ conn.commit()
 # Paso 2: Cargar el CSV que contiene los datos necesarios para calcular el Effort Score
 marathon_data_extra = pd.read_csv('MarathonData.csv')
 
+# Convertir columnas a tipo numérico
+marathon_data_extra['km4week'] = pd.to_numeric(marathon_data_extra['km4week'], errors='coerce')
+marathon_data_extra['sp4week'] = pd.to_numeric(marathon_data_extra['sp4week'], errors='coerce')
+marathon_data_extra['Wall21'] = pd.to_numeric(marathon_data_extra['Wall21'], errors='coerce')
+marathon_data_extra['CrossTraining'] = pd.to_numeric(marathon_data_extra['CrossTraining'], errors='coerce')
+
 # Factores para calcular el Effort Score
 category_factors = {
     'MAM': 1.0,    # Male Athletes under 40
@@ -32,7 +38,7 @@ cross_training_factor = 0.05
 # Función para calcular el Effort Score
 def calcular_score_entreno(row):
     category_factor = category_factors.get(row['Category'], 1.0)  # 1.0 por defecto
-    wall_penalization = row['Wall21'] / 10 if row['Wall21'] else 0
+    wall_penalization = row['Wall21'] / 10 if pd.notnull(row['Wall21']) else 0
     effort_score = (row['km4week'] * row['sp4week']) * category_factor * (1 + cross_training_factor * row['CrossTraining']) * (1 - wall_penalization)
     return effort_score
 
@@ -100,3 +106,4 @@ print(f"Root Mean Squared Error del modelo: {rmse:.2f} minutos")
 # Guardar el modelo entrenado
 joblib.dump(model, 'marathon_prediction_model.pkl')
 print("Modelo entrenado y guardado en 'marathon_prediction_model.pkl'")
+
