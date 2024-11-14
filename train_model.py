@@ -33,7 +33,7 @@ def calcular_score_entreno(row):
 # Calcular el Effort Score y añadirlo al DataFrame
 marathon_data_extra['effort_score'] = marathon_data_extra.apply(calcular_score_entreno, axis=1)
 
-# Paso 2: Cargar los datos de maratón y clima
+# Paso 2: Cargar los datos de clima y maratón
 marathon_data = pd.read_csv('Berlin_Marathon_data_1974_2019.csv', low_memory=False)
 weather_data = pd.read_csv('Berlin_Marathon_weather_data_since_1974.csv', low_memory=False)
 
@@ -54,11 +54,11 @@ marathon_data['TIME'] = marathon_data['TIME'].apply(convertir_tiempo_minutos)
 # Unir los datos de maratón y clima por año
 combined_data = pd.merge(marathon_data, weather_data, on='YEAR', how='inner')
 
-# Añadir el Effort Score al dataset combinado usando el ID del atleta para la combinación
-combined_data = pd.merge(combined_data, marathon_data_extra[['id', 'effort_score']], left_on='id', right_on='id', how='inner')
+# Añadir una columna de `effort_score` promedio para simplificar (si es necesario)
+# Aquí se podría hacer una operación más detallada para asignar effort_score a cada carrera si hay un vínculo claro.
 
 # Seleccionar características y el objetivo (sin presión atmosférica ni horas de sol)
-features = ['effort_score', 'AVG_TEMP_C', 'PRECIP_mm']
+features = ['AVG_TEMP_C', 'PRECIP_mm']  # Elimina o agrega effort_score si es necesario
 target = 'TIME'
 
 # Eliminar filas con valores nulos en las características seleccionadas
