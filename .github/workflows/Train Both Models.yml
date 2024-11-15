@@ -30,10 +30,28 @@ jobs:
         run: |
           python train_model_2.py
 
-      - name: Upload Trained Models
-        uses: actions/upload-artifact@v3  # Cambiar a la versión v3
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
         with:
-          name: trained-models
-          path: |
-            trained_model_1.pkl
-            trained_model_2.pkl
+          tag_name: v1.0.0  # Actualiza el tag según sea necesario
+          release_name: "Trained Models"
+          draft: false
+          prerelease: false
+
+      - name: Upload Trained Models to Release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: trained_model_1.pkl
+          asset_name: trained_model_1.pkl
+          asset_content_type: application/octet-stream
+
+      - name: Upload Trained Model 2 to Release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: trained_model_2.pkl
+          asset_name: trained_model_2.pkl
+          asset_content_type: application/octet-stream
+
