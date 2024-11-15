@@ -30,16 +30,31 @@ jobs:
         run: |
           python train_model_2.py
 
+      - name: Delete Existing Release
+        run: |
+          response=$(curl -s -X GET -H "Authorization: token ${{ secrets.secretoabc }}" \
+          "https://api.github.com/repos/${{ github.repository }}/releases/tags/v1.0.0")
+
+          if echo "$response" | grep -q '"id":'; then
+            release_id=$(echo "$response" | jq -r '.id')
+            curl -s -X DELETE -H "Authorization: token ${{ secrets.secretoabc }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
+          fi
+
+          # Eliminar el tag
+          curl -s -X DELETE -H "Authorization: token ${{ secrets.secretoabc }}" \
+          "https://api.github.com/repos/${{ github.repository }}/git/refs/tags/v1.0.0"
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         with:
-          tag_name: v1.0.0  # Cambia la versión según corresponda
+          tag_name: v1.0.0
           release_name: "Trained Models Release"
           draft: false
           prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.CASO2 }}
+          GITHUB_TOKEN: ${{ secrets.secretoabc }}
 
       - name: Upload Trained Model 1 to Release
         uses: actions/upload-release-asset@v1
