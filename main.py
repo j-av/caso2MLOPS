@@ -17,9 +17,9 @@ except:
 def read_root():
     return {"message": "Marathon Training API"}
 
-@app.get("/calculate-effort/{km4week}/{sp4week}")
-def calculate_effort(km4week: float, sp4week: float):
-    effort_score = km4week * sp4week
+@app.get("/calculate-effort/{km4week}/{sp4week}/{Wall21}")
+def calculate_effort(km4week: float, sp4week: float, Wall21: float):
+    effort_score = (km4week * sp4week) - (Wall21*100)
     return {"effort_score": effort_score}
 
 @app.post("/predict")
